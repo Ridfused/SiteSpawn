@@ -1,12 +1,21 @@
-import React, { useState, FormEvent } from 'react';
-import { Mail, MessageSquare, CreditCard, Calculator, Check, ArrowRight, ArrowLeft, Loader2, Sparkles, X } from 'lucide-react';
+import React, { useState, FormEvent, useEffect } from 'react';
+import { Mail, MessageSquare, CreditCard, Calculator, Check, ArrowRight, ArrowLeft, Loader2, Sparkles, X, Trash2 } from 'lucide-react';
 import { QuoteSubmission } from '../types';
 
-export default function ContactForm() {
+export default function ContactForm({ isAdmin = false }: { isAdmin?: boolean }) {
   // Main form states
-  const [formData, setFormData] = useState({ name: '', businessName: '', email: '', message: '' });
+  const [formData, setFormData] = useState({
+    name: '',
+    businessName: '',
+    email: '',
+    blueprint: 'Business Website Blueprint',
+    message: ''
+  });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  // Stored submissions (used to render comments below the form)
+  const [submissions, setSubmissions] = useState<QuoteSubmission[]>([]);
 
   // Calculator modal states
   const [isCalcOpen, setIsCalcOpen] = useState(false);
@@ -40,6 +49,65 @@ export default function ContactForm() {
     { name: '5-10 Pages', multiplier: 1.2 },
     { name: '10+ Pages', multiplier: 1.5 },
   ];
+
+  const blueprintOptions = [
+    {
+      name: 'Business Website Blueprint',
+      items: [
+        'Homepage, About, Services, Contact pages',
+        'Lead capture form and clear call-to-action',
+        'Mobile-first responsive layout',
+        'Local SEO optimization and fast loading'
+      ]
+    },
+    {
+      name: 'Restaurant Website Blueprint',
+      items: [
+        'Menu showcase and booking callout',
+        'Photo gallery and opening hours',
+        'Google Maps contact section',
+        'Mobile-friendly reservation flow'
+      ]
+    },
+    {
+      name: 'Salon Website Blueprint',
+      items: [
+        'Service menu and price lists',
+        'Appointment booking prompt',
+        'Team and testimonials section',
+        'Gallery of work and brand styling'
+      ]
+    },
+    {
+      name: 'Gym Website Blueprint',
+      items: [
+        'Class schedule and membership plans',
+        'Trainer profiles and fitness highlights',
+        'Workout program call-to-action',
+        'Conversion-focused landing sections'
+      ]
+    },
+    {
+      name: 'Landing Page Blueprint',
+      items: [
+        'Hero section with strong offer',
+        'Single conversion-focused CTA',
+        'Social proof or testimonials',
+        'Fast-scrolling mobile experience'
+      ]
+    },
+    {
+      name: 'eCommerce Shop Blueprint',
+      items: [
+        'Product catalog and category pages',
+        'Secure checkout flow design',
+        'Featured products and promotions',
+        'Contact/support and shipping info'
+      ]
+    }
+  ];
+
+  const selectedBlueprint = blueprintOptions.find((option) => option.name === formData.blueprint);
 
   const handleFeatureToggle = (feat: string) => {
     setCalcData(prev => ({
@@ -77,7 +145,8 @@ Estimated Budget Scope: ${est.priceRange} (${est.timeEstimate})
 
 Hey! I calculated my estimate using your estimator widget. Let's build this together!`;
     
-    setFormData(prev => ({ ...prev, message: details }));
+    const withEmail = formData.email.trim() ? `${details}\n\nContact Email: ${formData.email.trim()}` : details;
+    setFormData(prev => ({ ...prev, message: withEmail }));
     setIsCalcOpen(false);
     // Reset calculator
     setCalcStep(1);
@@ -86,8 +155,8 @@ Hey! I calculated my estimate using your estimator widget. Let's build this toge
 
   const handleMainSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-      setStatus({ type: 'error', msg: 'Please fill in all required fields.' });
+    if (!formData.name.trim() || !formData.email.trim() || !formData.blueprint.trim() || !formData.message.trim()) {
+      setStatus({ type: 'error', msg: 'Please fill in all required fields and select a blueprint.' });
       return;
     }
 
@@ -104,19 +173,32 @@ Hey! I calculated my estimate using your estimator widget. Let's build this toge
         name: formData.name.trim(),
         businessName: formData.businessName.trim(),
         email: formData.email.trim(),
-        message: formData.message.trim(),
+        blueprint: formData.blueprint.trim(),
+        message: `${formData.message.trim()}${formData.email.trim() ? `\n\nContact Email: ${formData.email.trim()}` : ''}`,
         timestamp: new Date().toISOString()
       };
       localStorage.setItem('sitespawn_submissions', JSON.stringify([...submissions, newSub]));
-
+      setSubmissions(prev => [...prev, newSub]);
       setStatus({ type: 'success', msg: 'Thank you! Your quote request has been sent successfully.' });
-      setFormData({ name: '', businessName: '', email: '', message: '' });
+      setFormData({ name: '', businessName: '', email: '', blueprint: 'Business Website Blueprint', message: '' });
     } catch (err) {
       setStatus({ type: 'error', msg: 'Oops! Something went wrong. Please try again later.' });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleDeleteSubmission = (deleteId: string) => {
+    const updated = submissions.filter((item) => item.id !== deleteId);
+    setSubmissions(updated);
+    localStorage.setItem('sitespawn_submissions', JSON.stringify(updated));
+  };
+
+  // Load existing submissions from localStorage on mount
+  useEffect(() => {
+    const existing = JSON.parse(localStorage.getItem('sitespawn_submissions') || '[]') as QuoteSubmission[];
+    setSubmissions(existing || []);
+  }, []);
 
   return (
     <section id="contact" className="py-24 bg-[#F0EAE1] relative border-b border-black/5">
@@ -148,18 +230,6 @@ Hey! I calculated my estimate using your estimator widget. Let's build this toge
                   <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-[0.1em] block">Email</span>
                   <a href="mailto:sitespawn@gmail.com" className="text-[#2A2421] hover:opacity-70 text-xs font-semibold transition-opacity">
                     sitespawn@gmail.com
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="bg-[#F0EAE1] border border-black/5 w-9 h-9 rounded-none flex items-center justify-center shrink-0">
-                  <MessageSquare className="h-4 w-4 text-black" />
-                </div>
-                <div>
-                  <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-[0.1em] block">WhatsApp</span>
-                  <a href="https://wa.me/1234567890" target="_blank" rel="noreferrer" className="text-[#2A2421] hover:opacity-70 text-xs font-semibold transition-opacity">
-                    Chat on WhatsApp
                   </a>
                 </div>
               </div>
@@ -265,6 +335,37 @@ Hey! I calculated my estimate using your estimator widget. Let's build this toge
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-[10px] uppercase tracking-[0.1em] font-bold text-neutral-500">Blueprint *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {blueprintOptions.map((option) => (
+                    <button
+                      key={option.name}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, blueprint: option.name }))}
+                      className={`text-[10px] text-left px-4 py-3 border rounded-none transition-all text-neutral-700 hover:border-black/30 hover:bg-neutral-50 ${
+                        formData.blueprint === option.name
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white border-black/10'
+                      }`}
+                    >
+                      {option.name}
+                    </button>
+                  ))}
+                </div>
+
+                {selectedBlueprint && (
+                  <div className="bg-[#F8F5EF] border border-black/10 rounded-none p-4 text-[10px] text-neutral-700">
+                    <div className="text-neutral-500 uppercase tracking-[0.2em] font-bold mb-2">Specialization</div>
+                    <ul className="space-y-2 list-disc list-inside">
+                      {selectedBlueprint.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
                 <label htmlFor="message" className="text-[10px] uppercase tracking-[0.1em] font-bold text-neutral-500">Project Details *</label>
                 <textarea
                   id="message"
@@ -276,6 +377,8 @@ Hey! I calculated my estimate using your estimator widget. Let's build this toge
                   required
                 />
               </div>
+
+              {/* Email will automatically be included in project details/contact */}
 
               <button
                 type="submit"
@@ -293,6 +396,45 @@ Hey! I calculated my estimate using your estimator widget. Let's build this toge
                 )}
               </button>
             </form>
+
+            {/* Comments / Submissions preview */}
+            <div className="pt-6 border-t border-black/10">
+              <h4 className="text-neutral-500 text-[10px] uppercase tracking-[0.1em] font-bold mb-3">Recent Submissions</h4>
+              {submissions.length === 0 ? (
+                <p className="text-xs text-neutral-500">No submissions yet — yours will appear here after sending.</p>
+              ) : (
+                <div className="space-y-3">
+                  {[...submissions].reverse().map(s => (
+                    <div key={s.id} className="bg-white border border-black/5 p-3 text-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
+                        <div className="font-bold text-sm">{s.name}{s.businessName ? ` — ${s.businessName}` : ''}</div>
+                        {s.email && (
+                          <div className="text-[12px] text-neutral-700"><a href={`mailto:${s.email}`} className="hover:underline">{s.email}</a></div>
+                        )}
+                      {s.blueprint && (
+                        <div className="text-[10px] uppercase tracking-[0.15em] text-neutral-500 mt-1">
+                          {s.blueprint}
+                        </div>
+                      )}
+                        <div className="flex items-center gap-3">
+                          <div className="text-neutral-400 text-[11px]">{new Date(s.timestamp).toLocaleString()}</div>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSubmission(s.id)}
+                              className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800 text-[10px] uppercase tracking-[0.15em] font-bold"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-neutral-700 whitespace-pre-line">{s.message}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
         </div>

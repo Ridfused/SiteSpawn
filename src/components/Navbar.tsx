@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, ArrowRight } from 'lucide-react';
+import { UserSession } from '../types';
 
-export default function Navbar() {
+export default function Navbar({ user, onLogout }: { user?: UserSession | null; onLogout?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -53,14 +54,23 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* CTA Button */}
-        <div className="hidden md:flex items-center">
+        {/* CTA Button + Auth */}
+        <div className="hidden md:flex items-center gap-4">
           <a 
             href="#contact" 
             className="bg-black hover:bg-transparent text-white hover:text-black text-[10px] uppercase tracking-[0.2em] font-bold px-6 py-3 border border-black transition-all flex items-center gap-2"
           >
             Get a Free Quote <ArrowRight className="h-3 w-3" />
           </a>
+
+          {user ? (
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-neutral-600">{user.name}</span>
+              <button onClick={() => onLogout && onLogout()} className="text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 border border-black/10 hover:bg-neutral-100">Logout</button>
+            </div>
+          ) : (
+            <a href="#/login" className="text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 border border-black/10 hover:bg-neutral-100">Login</a>
+          )}
         </div>
 
         {/* Mobile menu toggle */}
@@ -97,6 +107,17 @@ export default function Navbar() {
           >
             Get a Free Quote
           </a>
+
+          <div className="flex flex-col gap-2 mt-3">
+            {user ? (
+              <>
+                <div className="text-sm font-semibold">{user.name}</div>
+                <button onClick={() => { setIsOpen(false); onLogout && onLogout(); }} className="w-full text-left px-3 py-2 border border-black/10">Logout</button>
+              </>
+            ) : (
+              <a onClick={() => setIsOpen(false)} href="#/login" className="w-full text-left px-3 py-2 border border-black/10">Login</a>
+            )}
+          </div>
         </div>
       )}
     </header>

@@ -3,11 +3,19 @@ export interface QuoteSubmission {
   name: string;
   businessName: string;
   email: string;
+  blueprint?: string;
   message: string;
   selectedService?: string;
   selectedIndustry?: string;
   estimatedBudget?: string;
   timestamp: string;
+}
+
+export interface UserSession {
+  name: string;
+  username: string;
+  email?: string;
+  role: 'admin' | 'user';
 }
 
 export interface Review {
